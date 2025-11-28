@@ -12,16 +12,13 @@ Ssentifia is an AI-forward fitness companion built with Flutter and Firebase. It
   - [Navigation Shell](#navigation-shell)
   - [Workout Plans](#workout-plans)
   - [Meals & Nutrition](#meals--nutrition)
-- [Profile & Goals](#profile--goals)
-- [Calendar Placeholder](#calendar-placeholder)
-- [Settings & Utilities](#settings--utilities)
-- [AI & Third-Party Keys](#ai--third-party-keys)
+  - [Profile & Goals](#profile--goals)
+  - [Calendar Placeholder](#calendar-placeholder)
 - [Data & Content Requirements](#data--content-requirements)
   - [Workout Documents](#workout-documents)
   - [Meal Documents](#meal-documents)
   - [User Documents](#user-documents)
 - [Firebase Configuration](#firebase-configuration)
-- [Deployment & Hosting](#deployment--hosting)
 - [Assets & Branding](#assets--branding)
 - [Local Development](#local-development)
 - [Testing & Quality](#testing--quality)
@@ -79,10 +76,6 @@ Ssentifia is an AI-forward fitness companion built with Flutter and Firebase. It
 ### Calendar Placeholder
 - The fourth tab currently reuses the profile screen as a stub; replace `calendarScreen` with a real calendar experience using `calendar_view` when ready.【F:lib/home_screen.dart†L40-L118】
 
-### Settings & Utilities
-- **Settings panel:** `settings.dart` renders a themable Settings page with sections for General, Organization, and Support. Dark mode toggles the enclosing `Theme`, while other list tiles are placeholders for notifications, security, messaging, and calling. The “Profile” item routes back to the home shell with the Profile tab preselected.【F:lib/settings.dart†L1-L144】
-- **Legacy meal list:** `edit_meal_screen.dart` contains an older meal list layout with loading state and commented-out filter dialog logic; keep it for reference or remove once the newer `MealList` is primary.【F:lib/edit_meal_screen.dart†L1-L129】
-
 ## Data & Content Requirements
 ### Workout Documents
 Store each workout under `workouts` with the following fields consumed by `WorkoutPlan.fromJson`:
@@ -106,19 +99,10 @@ User records (e.g., in `users/<uid>`) should include the profile fields read tod
 ## Firebase Configuration
 - The repo ships with platform-specific options for project `ssentifia-beta` (web/appId `1:579612853398:web:1036b59d1e4946057a6eb7`). Replace `lib/firebase_options.dart` via `flutterfire configure` if targeting a different project.【F:lib/firebase_options.dart†L46-L88】
 - Firestore rules, Realtime Database rules, Storage rules, and index templates are present at the repo root (`firestore.rules`, `database.rules.json`, `storage.rules`, `firestore.indexes.json`)—deploy them alongside your Firebase project for parity.
-- Current rule defaults are restrictive for Realtime Database and Storage (both disallow reads/writes) but permissive for Firestore (open only until February 9, 2023). Update all rules before shipping to ensure authentication-gated access and least-privilege behavior.【F:database.rules.json†L1-L7】【F:storage.rules†L1-L7】【F:firestore.rules†L1-L8】
-
-## Deployment & Hosting
-- `firebase.json` is configured for Firebase Hosting with the Flutter web build output at `build/web` and links the same rules/index files noted above. Use `firebase deploy --only hosting,firestore,database,storage` after running `flutter build web` to publish a parity environment.【F:firebase.json†L1-L18】
-- No Cloud Functions are present; analytics/crashlytics are initialized via Firebase core configuration and require the corresponding services enabled in the Firebase console.
-
-## AI & Third-Party Keys
-- The repository includes `lib/api.dart` with hard-coded OpenAI secret and organization IDs. **Do not ship this to production**—replace with environment-driven configuration (e.g., `--dart-define` at build time) or secure remote config. Remove the committed secret and rotate the key in your provider dashboard before release.【F:lib/api.dart†L1-L2】
 
 ## Assets & Branding
 - Configure Flutter assets to point to brand logos under `assets/images/`, including `ssentifia_word_logo_transparent_2.svg` used on the login screen. Update `pubspec.yaml` if paths change.【F:lib/login_screen.dart†L49-L70】【F:pubspec.yaml†L75-L89】
 - App title is “Ssentifia”; ensure app store metadata and splash screens use the green “S” logomark and wordmark as shown in the attached references.
-- `tools.md` documents the toolchain versions (Flutter 3.38.3, linting, and test utilities) that this repo was created with—align your local environment to avoid version drift during deployments.【F:tools.md†L1-L5】
 
 ## Local Development
 1. **Prerequisites**
@@ -144,4 +128,3 @@ User records (e.g., in `users/<uid>`) should include the profile fields read tod
 - Missing images in Firestore will fall back to stock URLs defined in the models; broken links will render as failed network images, so prefer uploading assets to Firebase Storage and referencing them via `imgURL`.【F:lib/meals.dart†L30-L38】【F:lib/workout_plan.dart†L20-L33】
 - The calendar tab is a placeholder; wire it to a real calendar screen to avoid duplicate profile content.【F:lib/home_screen.dart†L40-L118】
 - The Google/Apple buttons currently bypass real OAuth; integrate `google_sign_in` and `sign_in_with_apple` for production readiness.【F:lib/login_screen.dart†L137-L213】
-- `calendar.dart` is an empty stub and `temp_code.dart` contains an archived grid prototype—both can be removed once the production calendar and workout layouts supersede them.【F:lib/calendar.dart†L1-L1】【F:lib/temp_code.dart†L1-L90】
