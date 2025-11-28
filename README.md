@@ -1,72 +1,130 @@
 # Ssentifia
 
-Ssentifia is an AI-powered fitness companion that pairs workout planning, nutrition tracking, and personalized coaching in a single Flutter application. The app is built around Firebase-backed content (meals, workouts, and user profiles) and a branded UI consistent with the experience at [ssentifia.com](https://ssentifia.com).
+Ssentifia is an AI-forward fitness companion built with Flutter and Firebase. It combines workout programming, nutrition guidance, and profile-driven recommendations behind a cohesive brand experience that mirrors the look and feel of ssentifia.com. This README captures every screen, data shape, and visual decision so another developer can rebuild the full experience from scratch.
 
-## Core Features
+## Table of Contents
+- [Brand & UX System](#brand--ux-system)
+- [Platform & Toolchain](#platform--toolchain)
+- [Architecture Overview](#architecture-overview)
+- [Application Walkthrough](#application-walkthrough)
+  - [Onboarding](#onboarding)
+  - [Authentication](#authentication)
+  - [Navigation Shell](#navigation-shell)
+  - [Workout Plans](#workout-plans)
+  - [Meals & Nutrition](#meals--nutrition)
+  - [Profile & Goals](#profile--goals)
+  - [Calendar Placeholder](#calendar-placeholder)
+- [Data & Content Requirements](#data--content-requirements)
+  - [Workout Documents](#workout-documents)
+  - [Meal Documents](#meal-documents)
+  - [User Documents](#user-documents)
+- [Firebase Configuration](#firebase-configuration)
+- [Assets & Branding](#assets--branding)
+- [Local Development](#local-development)
+- [Testing & Quality](#testing--quality)
+- [Troubleshooting Notes](#troubleshooting-notes)
 
-- **Firebase-backed authentication** – Email/password sign-in, optional Google entry point, and an auth-state listener that routes users directly into the main experience once authenticated.【F:lib/login_screen.dart†L1-L207】【F:lib/main.dart†L70-L83】  
-- **Workout discovery & filtering** – Pulls workouts from the `workouts` Firestore collection, displays responsive card grids, and lets users filter by title and duration via a floating filter dialog.【F:lib/home_screen.dart†L66-L222】【F:lib/workout_plan_list.dart†L1-L220】  
-- **Nutrition browsing & filtering** – Loads meals from the `meals` collection, renders them in responsive lists with imagery, and filters by name and calorie range using the same dialog pattern.【F:lib/home_screen.dart†L101-L160】【F:lib/meal_list.dart†L1-L220】  
-- **Structured content models** – Dedicated `Meal` and `WorkoutPlan` models normalize Firestore payloads, account for mixed numeric types, and provide default imagery.【F:lib/meals.dart†L1-L53】【F:lib/workout_plan.dart†L1-L50】  
-- **User profile & goal tracking** – A profile screen loads Firestore-backed user data, gathers fitness goals, dietary needs, and workout preferences through multi-select dialogs, and surfaces calculated metrics (BMR, TDEE, BMI) from the `calculations.dart` helper.【F:lib/user_profile.dart†L1-L320】  
-- **Navigation shell** – A bottom navigation bar and drawer toggle between workouts, meals, profile, and a placeholder calendar experience while retaining shared filtering controls.【F:lib/home_screen.dart†L224-L412】  
-- **Onboarding** – Multi-page onboarding content introduces AI-powered workouts, meal planning, and profile personalization for new users.【F:lib/on_boarding.dart†L5-L33】
+## Brand & UX System
+- **Color palette:** Core colors are Granny Smith Apple (#9fd983) for primaries, Verdigris (#66b2b2) for secondary accents, Dark Slate Gray (#305f5f) for deep accents, Pakistan Green (#3b6d22) for highlights, and Misty Rose (#FDDDD8) for backgrounds.【F:lib/main.dart†L17-L43】 These colors drive AppBar, buttons, chips, floating action buttons, and typography defaults.
+- **Typography:** Uses the default Material typography with primary text painted black to contrast the pastel background palette.【F:lib/main.dart†L30-L43】
+- **Layout rhythm:** Rounded corners (10–20 px) on cards, dialogs, and text fields; list items use drop shadows for depth; gradients appear on the login background (Dark Slate Gray → Pakistan Green).【F:lib/login_screen.dart†L31-L71】【F:lib/meal_list.dart†L79-L135】
+- **Iconography:** Material icons for navigation (fitness center, dining, person, calendar) and chips for selectable tags; SVG and raster logos are expected under `assets/images` and displayed on authentication screens.【F:lib/login_screen.dart†L31-L78】
 
-## Tech Stack
+## Platform & Toolchain
+- **Framework:** Flutter 3.38.3 (Dart >= 2.18.6) targeting mobile and web builds.【F:pubspec.yaml†L1-L24】
+- **Firebase services:** Auth, Firestore, Realtime Database, Storage, Analytics, Crashlytics, Dynamic Links configured for the `ssentifia-beta` project through generated `firebase_options.dart`.【F:lib/firebase_options.dart†L46-L88】
+- **UI/utility packages:** `flutter_svg` (SVG logos), `calendar_view`, `flutter_spinbox`, `flutter_colorpicker`, `multi_image_picker_view`, and Sign-In button styles for OAuth affordances.【F:pubspec.yaml†L45-L54】【F:lib/login_screen.dart†L1-L20】
 
-- **Framework:** Flutter (Dart SDK >=2.18.6), targeting mobile and web surfaces.【F:pubspec.yaml†L1-L24】  
-- **Backend:** Firebase (Auth, Firestore, Realtime Database, Storage, Analytics, Crashlytics, Dynamic Links). Project ID: `ssentifia-beta` with platform-specific configs in `lib/firebase_options.dart`.【F:pubspec.yaml†L31-L55】【F:lib/firebase_options.dart†L46-L88】  
-- **UI & utilities:** `flutter_svg`, `calendar_view`, `flutter_spinbox`, `flutter_colorpicker`, and `multi_image_picker_view` provide visuals and input controls.【F:pubspec.yaml†L45-L54】  
-- **Tooling:** Flutter SDK 3.38.3 with linting via `flutter_lints` and testing support through `flutter_test`, `flutter_driver`, and `mockito`.【F:tools.md†L1-L4】【F:pubspec.yaml†L56-L69】
+## Architecture Overview
+- **Entry point:** `main.dart` initializes Firebase, applies the brand theme, and gates content on authentication status via `FirebaseAuth.authStateChanges`. Authenticated users land on `HomeScreen`; unauthenticated users see `LoginScreen`.【F:lib/main.dart†L9-L57】
+- **State containers:** Each major feature is a stateful screen (e.g., `WorkoutPlanList`, `MealList`, `UserProfileScreen`) that hydrates itself from Firestore and retains filtered subsets in-memory for quick UI updates.【F:lib/home_screen.dart†L15-L118】【F:lib/meal_list.dart†L6-L70】
+- **Navigation:** A bottom `BottomAppBar` with a center-docked FAB drives tab selection; a side drawer mirrors the same destinations. Floating dialogs are used for filter controls to keep the primary lists uncluttered.【F:lib/home_screen.dart†L224-L320】
 
-## Project Structure
+## Application Walkthrough
+### Onboarding
+- `on_boarding.dart` provides a multi-card introduction that highlights AI-driven workouts, meal planning, and personalization. Integrate it before authentication to orient first-time users; each card uses brand colors and Material cards for visual consistency.【F:lib/on_boarding.dart†L5-L33】
 
-```
-lib/
-├── main.dart                # App entry point, theme, and auth gate
-├── home_screen.dart         # Navigation shell plus workout/meal filtering
-├── login_screen.dart        # Email/Google sign-in experience
-├── create_login_screen.dart # Account creation flow
-├── on_boarding.dart         # Intro carousel for new users
-├── workout_plan*.dart       # Workout data model, list, and detail pages
-├── meal*.dart               # Meal model, list, detail, and editor screens
-├── user_profile.dart        # Profile, goals, dietary needs, and metrics
-├── filter_*_dialog.dart     # Shared filtering dialogs for meals/workouts
-├── drawer.dart              # Navigation drawer
-└── firebase_options.dart    # FlutterFire-generated Firebase configs
-```
+### Authentication
+- **Email/password:** Text fields with underlined inputs on a Misty Rose glassmorphic panel; errors currently print to console. Successful auth transitions via the auth-state listener to the home experience.【F:lib/login_screen.dart†L31-L136】
+- **Google Sign-In:** Uses `flutter_signin_button` styling; the current implementation routes directly to `HomeScreen` on press (extend with real OAuth via `google_sign_in` for production).【F:lib/login_screen.dart†L137-L213】
+- **Apple Sign-In placeholder:** Renders a disabled Apple button labeled “Coming Soon!” to communicate roadmap status.【F:lib/login_screen.dart†L192-L213】
+- **Account creation:** `create_login_screen.dart` mirrors the login layout for sign-up flows (email/password creation stub).【F:lib/create_login_screen.dart†L1-L203】
 
-## Local Setup
+### Navigation Shell
+- **Tabs:** Workout Plans, Nutrition Tracking, Profile, and a “Not A Calendar” placeholder controlled by `currentIndex` state. Titles update dynamically in the AppBar header.【F:lib/home_screen.dart†L15-L220】【F:lib/home_screen.dart†L240-L320】
+- **Drawer:** `drawer.dart` exposes the same destinations with ListTiles and keeps selection in sync with the active tab.【F:lib/drawer.dart†L1-L123】
+- **Floating filters:** A center FAB opens either workout or meal filter dialogs depending on the active tab, keeping filtering one tap away.【F:lib/home_screen.dart†L320-L353】
 
+### Workout Plans
+- **Data loading:** Firestore `workouts` collection is read on init; data is transformed into `WorkoutPlan` models with normalized doubles and default imagery if none is provided.【F:lib/home_screen.dart†L63-L118】【F:lib/workout_plan.dart†L1-L50】
+- **List presentation:** `WorkoutPlanList` adapts card grids to screen width, with hero imagery, titles, durations, experience level, and equipment callouts. Tapping pushes a detail page with exercise breakdowns (see `workout_plan_list.dart` and `workout_plan_detail.dart`).【F:lib/workout_plan_list.dart†L1-L220】
+- **Filtering:** `FilterWorkoutsGeneralDialog` supplies a RangeSlider for duration (0–120 minutes) and a search field against titles; results update in-memory with `filterWorkouts`.【F:lib/filter_workouts_general_dialog.dart†L1-L107】【F:lib/home_screen.dart†L90-L176】
+- **Completion state:** The model includes a `completed` flag for future tracking, defaulting to false.【F:lib/workout_plan.dart†L1-L33】
+
+### Meals & Nutrition
+- **Data loading:** Firestore `meals` collection is read on init and mapped into `Meal` models that coerce mixed numeric types and provide default photography when missing.【F:lib/home_screen.dart†L63-L118】【F:lib/meals.dart†L1-L38】
+- **List presentation:** Responsive card list with full-width imagery, meal name, and calories; empty states show friendly messaging. Tapping opens `MealDetail` with ingredient lists, nutrition facts, and instructions.【F:lib/meal_list.dart†L46-L220】【F:lib/meal_detail.dart†L1-L250】
+- **Filtering:** `FilterMealsGeneralDialog` offers a calorie RangeSlider (0–1000) plus name search; filtered results reuse the same card layout with instant feedback when no meals match.【F:lib/filter_meals_general_dialog.dart†L1-L102】【F:lib/home_screen.dart†L63-L176】
+- **Nutrition structure:** Each meal exposes macronutrients (calories, protein, fat, carbohydrates), sodium, fiber, ingredient arrays, and free-form instructions for rendering.【F:lib/meals.dart†L10-L38】
+
+### Profile & Goals
+- **Data loading:** Fetches a specific user document from Firestore (replace with authenticated UID) and hydrates profile fields like name, email, age, gender, height (ft/in), weight, goal weight, and activity level.【F:lib/user_profile.dart†L72-L129】【F:lib/user_profile.dart†L210-L255】
+- **Calculated metrics:** Uses `Nutrients` helper to compute BMR, TDEE, BMI, and macro targets (protein, carbs, fat, goal calories) displayed in card rows for quick reference.【F:lib/user_profile.dart†L210-L240】【F:lib/calculations.dart†L3-L111】
+- **Selectable chips:** Fitness goals, dietary needs, and workout preferences rendered as `ChoiceChip` groups; tapping “add” opens a multi-select dialog for each category. Edit mode toggles via the AppBar action, enabling selection and future persistence.【F:lib/user_profile.dart†L1-L210】【F:lib/user_profile.dart†L260-L352】
+- **Profile header:** Circular avatar placeholder, name/email text, and stacked metric cards organized in two flexible columns for responsiveness.【F:lib/user_profile.dart†L240-L352】
+
+### Calendar Placeholder
+- The fourth tab currently reuses the profile screen as a stub; replace `calendarScreen` with a real calendar experience using `calendar_view` when ready.【F:lib/home_screen.dart†L40-L118】
+
+## Data & Content Requirements
+### Workout Documents
+Store each workout under `workouts` with the following fields consumed by `WorkoutPlan.fromJson`:
+- `title` (string), `description` (string), `experience_level` (string), `location_to_complete` (string).
+- `workout_duration` (number), `estimated_MET` (number).
+- `workout_equipment` (array of strings) and `exercises` (map or list of exercise maps rendered in detail view).
+- Optional `imgURL` (string) for hero imagery; defaults to a hosted stock photo if omitted.【F:lib/workout_plan.dart†L1-L33】
+
+### Meal Documents
+Store meals under `meals` with:
+- `name` (string), `ingredients` (array of strings), `instructions` (string).
+- `nutrition` map containing `calories`, `protein`, `fat`, `carbohydrates`, `fiber`, `sodium` (capitalization flexible; helper coerces values to doubles).【F:lib/meals.dart†L10-L38】
+- Optional `imgURL` (string) for meal photography; defaults to a vegetable stock image if missing.【F:lib/meals.dart†L30-L38】
+
+### User Documents
+User records (e.g., in `users/<uid>`) should include the profile fields read today:
+- `full_name`, `email`, `gender` (`male`/`female` expected), `age` (int), `height_ft` (int), `height_in` (int), `weight` (int), `goalWeight` (int), `activityLevel` (string matching “Sedentary”, “Lightly Active”, “Moderately Active”, “Very Active”).【F:lib/user_profile.dart†L72-L129】
+- Optional `profileComplete` marker for onboarding state.
+- Extend with arrays for `fitnessGoals`, `dietaryNeeds`, and `workoutPreferences` to persist chip selections; current UI keeps them in memory only.【F:lib/user_profile.dart†L1-L210】
+
+## Firebase Configuration
+- The repo ships with platform-specific options for project `ssentifia-beta` (web/appId `1:579612853398:web:1036b59d1e4946057a6eb7`). Replace `lib/firebase_options.dart` via `flutterfire configure` if targeting a different project.【F:lib/firebase_options.dart†L46-L88】
+- Firestore rules, Realtime Database rules, Storage rules, and index templates are present at the repo root (`firestore.rules`, `database.rules.json`, `storage.rules`, `firestore.indexes.json`)—deploy them alongside your Firebase project for parity.
+
+## Assets & Branding
+- Configure Flutter assets to point to brand logos under `assets/images/`, including `ssentifia_word_logo_transparent_2.svg` used on the login screen. Update `pubspec.yaml` if paths change.【F:lib/login_screen.dart†L49-L70】【F:pubspec.yaml†L75-L89】
+- App title is “Ssentifia”; ensure app store metadata and splash screens use the green “S” logomark and wordmark as shown in the attached references.
+
+## Local Development
 1. **Prerequisites**
-   - Install Flutter 3.38.3 (or newer compatible with Dart 2.18) and ensure `flutter` is on your PATH.【F:tools.md†L1-L4】【F:pubspec.yaml†L22-L24】  
-   - Install the FlutterFire CLI if you need to regenerate Firebase configs.
-
-2. **Clone & install packages**
+   - Install Flutter 3.38.3 (Dart >= 2.18.6) and ensure `flutter` is on PATH.【F:tools.md†L1-L4】【F:pubspec.yaml†L1-L24】
+   - Install the FlutterFire CLI for regenerating Firebase config when switching projects.
+2. **Install packages**
    ```bash
    flutter pub get
    ```
+3. **Seed Firebase**
+   - Add `workouts`, `meals`, and `users` collections per the schemas above so lists and profile cards populate on first load.【F:lib/home_screen.dart†L63-L118】【F:lib/user_profile.dart†L72-L129】
+4. **Run**
+   - Mobile: `flutter run`
+   - Web: `flutter run -d chrome` (web config already present).【F:lib/firebase_options.dart†L46-L88】
+5. **Hot reload**
+   - All screens are stateful; filters and edits update in-memory lists, so hot reload is safe during UI iteration.
 
-3. **Firebase configuration**
-   - The repo already includes `lib/firebase_options.dart` with project ID `ssentifia-beta`. If you own a different Firebase project, run `flutterfire configure` and replace the generated file.【F:lib/firebase_options.dart†L46-L88】  
-   - Ensure Firestore collections `workouts`, `meals`, and `users` contain documents matching the fields expected by `WorkoutPlan.fromJson`, `Meal.fromJson`, and the profile loader in `user_profile.dart`.【F:lib/workout_plan.dart†L28-L46】【F:lib/meals.dart†L37-L50】【F:lib/user_profile.dart†L169-L216】
+## Testing & Quality
+- Linting follows `flutter_lints`; run `flutter analyze` to enforce the style guide.【F:analysis_options.yaml†L1-L13】
+- Add integration and widget tests with `flutter_test`, `flutter_driver`, and `mockito` as needed; no tests ship today.【F:pubspec.yaml†L56-L69】
 
-4. **Run the app**
-   - For mobile: `flutter run` with an attached emulator or device.  
-   - For web: `flutter run -d chrome` (the Firebase web config is present).  
-
-5. **Testing & linting**
-   - Add or run tests with `flutter test`.  
-   - Use `flutter analyze` to apply the lint rules defined in `analysis_options.yaml` (via `flutter_lints`).
-
-## Usage Notes
-
-- The login flow currently navigates directly to the home screen after successful auth state changes; add password reset or Apple sign-in handling as needed.【F:lib/login_screen.dart†L29-L207】  
-- Workout and meal filtering use floating dialogs and in-memory filtering; Firestore reads occur at app start via the home screen state init hooks.【F:lib/home_screen.dart†L66-L170】【F:lib/home_screen.dart†L224-L412】  
-- Profile calculations depend on the `Nutrients` helper (see `calculations.dart`) and assume user data exists in Firestore; seed data accordingly.【F:lib/user_profile.dart†L169-L216】
-
-## Resources
-
-- Brand site: [ssentifia.com](https://ssentifia.com)
-- Flutter documentation: https://docs.flutter.dev/
-- Firebase for Flutter: https://firebase.google.com/docs/flutter
+## Troubleshooting Notes
+- Missing images in Firestore will fall back to stock URLs defined in the models; broken links will render as failed network images, so prefer uploading assets to Firebase Storage and referencing them via `imgURL`.【F:lib/meals.dart†L30-L38】【F:lib/workout_plan.dart†L20-L33】
+- The calendar tab is a placeholder; wire it to a real calendar screen to avoid duplicate profile content.【F:lib/home_screen.dart†L40-L118】
+- The Google/Apple buttons currently bypass real OAuth; integrate `google_sign_in` and `sign_in_with_apple` for production readiness.【F:lib/login_screen.dart†L137-L213】
